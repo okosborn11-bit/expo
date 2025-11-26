@@ -1,97 +1,302 @@
----
-title: Start developing
-description: Make your first change to an Expo project and see it live on your device.
-hideTOC: true
----
+import React, { useState, useMemo } from 'react';
 
-import { ProjectStructure } from '~/scenes/get-started/start-developing/ProjectStructure';
-import { TemplateFeatures } from '~/scenes/get-started/start-developing/TemplateFeatures';
-import { Collapsible } from '~/ui/components/Collapsible';
-import { ContentSpotlight } from '~/ui/components/ContentSpotlight';
-import { Terminal, DiffBlock } from '~/ui/components/Snippet';
-import { Step } from '~/ui/components/Step';
+// --- Icon Components (using inline SVG) ---
 
-<Step label="1">
-## Start a development server
-To start the development server, run the following command:
+const GolfIcon = ({ className }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 1.5C18.3639 1.5 23.5 6.63604 23.5 13C23.5 19.3639 18.3639 24.5 12 24.5C5.63604 24.5 0.5 19.3639 0.5 13C0.5 10.3014 1.8082 7.90428 3.86762 6.28456L18.4418 3.53504C18.6806 3.48624 18.9113 3.63065 18.9818 3.86438C19.0524 4.0981 18.9038 4.3248 18.665 4.3736L5.41999 6.84883C6.8378 3.88207 9.20783 1.96919 12 1.5ZM4.64703 7.64368L17.892 5.16845C16.208 3.32432 14.1837 2.1152 12 1.97022C8.74668 2.4412 5.92305 4.60634 4.64703 7.64368Z" />
+    <path d="M12 3C10.1362 3 8.41161 3.5185 6.96875 4.41797L19.2312 6.6873C19.088 5.16109 18.3512 3.83227 17.187 2.98163C15.617 1.86653 13.8561 1.39818 12 1.50022L12 3Z" fillOpacity="0.5" />
+  </svg>
+);
 
-<Terminal cmd={['$ npx expo start']} />
+const VideoIcon = ({ className }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M17 10.5V7c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-3.5l4 4v-11l-4 4z" />
+  </svg>
+);
 
-</Step>
+const SettingsIcon = ({ className }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19.4 12.9c.1-.3.1-.6.1-.9s0-.6-.1-.9l2.1-1.6c.2-.2.2-.5 0-.7l-2-3.5c-.2-.2-.5-.2-.7 0l-2.5 1c-.5-.4-1-.7-1.5-.9l-.3-2.6c0-.3-.2-.5-.5-.5h-4c-.3 0-.5.2-.5.5l-.3 2.6c-.5.2-1 .5-1.5.9l-2.5-1c-.2 0-.5.1-.7.3l-2 3.5c-.2.2-.2.5 0 .7l2.1 1.6c-.1.3-.1.6-.1.9s0 .6.1.9l-2.1 1.6c-.2.2-.2.5 0 .7l2 3.5c.2.2.5.2.7 0l2.5-1c.5.4 1 .7 1.5.9l.3 2.6c0 .3.2.5.5.5h4c.3 0 .5-.2.5.5l.3-2.6c.5-.2 1-.5 1.5-.9l2.5 1c.2 0 .5-.1.7-.3l2-3.5c.2-.2.2-.5 0-.7l-2.1-1.6zM12 15.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z" />
+  </svg>
+);
 
-<Step label="2">
-## Open the app on your device
+const XIcon = ({ className }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
+  </svg>
+);
 
-After running the command above, you will see a QR code in your terminal. Scan this QR code to open the app on your device.
+// --- Mock Data ---
 
-If you're using an Android Emulator or iOS Simulator, you can press <kbd>a</kbd> or <kbd>i</kbd> respectively to open the app.
+const mockCourse = {
+  name: "Augusta National",
+  hole: 12,
+  par: 3,
+  holeName: "Golden Bell",
+  mapUrl: "https://placehold.co/600x400/2C5E1A/FFFFFF?text=Hole+12+Map+View",
+  tees: {
+    masters: { name: "Masters", yardage: 155, green: { front: 145, middle: 155, back: 165 } },
+    members: { name: "Members", yardage: 140, green: { front: 130, middle: 140, back: 150 } },
+    ladies: { name: "Ladies", yardage: 115, green: { front: 105, middle: 115, back: 125 } },
+  },
+  advice: "A very dangerous par 3. With water in front and trouble long and left, the center of the green is always the target, regardless of pin position. Club selection is critical as the wind swirls."
+};
 
-<Collapsible summary="Having problems?">
+const defaultUserClubs = {
+  'Driver': 250,
+  '3-Wood': 225,
+  '5-Wood': 205,
+  '4-Iron': 190,
+  '5-Iron': 180,
+  '6-Iron': 170,
+  '7-Iron': 160,
+  '8-Iron': 150,
+  '9-Iron': 140,
+  'PW': 130,
+  'GW': 115,
+  'SW': 95,
+};
 
-Make sure you are on the same Wi-Fi network on your computer and your device.
+// --- Main App Component ---
 
-If it still doesn't work, it may be due to the router configuration &mdash; this is common for public networks. You can work around this by choosing the **Tunnel** connection type when starting the development server, then scanning the QR code again.
+export default function App() {
+  const [activeTab, setActiveTab] = useState('caddy');
+  const [selectedTee, setSelectedTee] = useState('masters');
+  const [userClubs, setUserClubs] = useState(defaultUserClubs);
+  const [showSettings, setShowSettings] = useState(false);
 
-<Terminal cmd={['$ npx expo start --tunnel']} />
+  const holeData = mockCourse.tees[selectedTee];
 
-> Using the **Tunnel** connection type will make the app reloads considerably slower than on **LAN** or **Local**, so it's best to avoid tunnel when possible. You may want to install and use an emulator or simulator to speed up development if **Tunnel** is required to access your machine from another device on your network.
+  // --- Logic for Club Recommendation ---
+  const recommendedClub = useMemo(() => {
+    const targetDistance = holeData.green.middle;
+    let bestClub = null;
+    let smallestDifference = Infinity;
 
-</Collapsible>
-
-</Step>
-
-<Step label="3">
-
-## Make your first change
-
-Open the **app/(tabs)/index.tsx** file in your code editor and make a change.
-
-<DiffBlock
-  raw={`diff --git a/app/(tabs)/index.tsx b/app/(tabs)/index.tsx
-index 45cfa0e..4d1b384 100644
---- a/app/(tabs)/index.tsx
-+++ b/app/(tabs)/index.tsx
-@@ -17,7 +17,7 @@ export default function HomeScreen() {
+    for (const [club, distance] of Object.entries(userClubs)) {
+      const difference = Math.abs(targetDistance - distance);
+      if (difference < smallestDifference) {
+        smallestDifference = difference;
+        bestClub = club;
       }
-    >
-      <ThemedView style={styles.titleContainer}>
--       <ThemedText type="title">Welcome!</ThemedText>
-+       <ThemedText type="title">Hello World!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-  `}
-/>
+    }
+    return bestClub;
+  }, [selectedTee, userClubs, holeData]);
 
-<Collapsible summary="Changes not showing up on your device?">
+  return (
+    <div className="flex justify-center items-center h-screen bg-gray-900 font-inter">
+      {/* Mobile App Shell */}
+      <div className="w-full max-w-sm h-full sm:h-[90vh] sm:max-h-[840px] bg-gray-100 rounded-lg shadow-2xl overflow-hidden flex flex-col">
+        
+        {/* Header */}
+        <header className="bg-white shadow-md p-4 flex justify-between items-center z-10">
+          <h1 className="text-2xl font-bold text-green-700">TeeBox</h1>
+          <button onClick={() => setShowSettings(true)} className="text-gray-600 hover:text-green-700">
+            <SettingsIcon className="w-6 h-6" />
+          </button>
+        </header>
 
-Expo Go is configured by default to automatically reload the app whenever a file is changed, but let's make sure to go over the steps to enable it in case somehow things aren't working.
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto pb-16">
+          {activeTab === 'caddy' && <CaddyView holeData={holeData} selectedTee={selectedTee} setSelectedTee={setSelectedTee} recommendedClub={recommendedClub} />}
+          {activeTab === 'coach' && <SwingCoachView />}
+        </main>
 
-- Make sure you have the [development mode enabled in Expo CLI](/workflow/development-mode#development-mode).
-- Close the Expo app and reopen it.
-- Once the app is open again, shake your device to reveal the developer menu. If you are using an emulator, press <kbd>Ctrl</kbd> + <kbd>M</kbd> for Android or <kbd>Cmd ⌘</kbd> + <kbd>D</kbd> for iOS.
-- If you see **Enable Fast Refresh**, press it. If you see **Disable Fast Refresh**, dismiss the developer menu. Now try making another change.
+        {/* Bottom Navigation */}
+        <nav className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-sm h-16 bg-white border-t border-gray-200 flex justify-around items-center">
+          <TabButton
+            icon={<GolfIcon className="w-7 h-7" />}
+            label="Caddy"
+            isActive={activeTab === 'caddy'}
+            onClick={() => setActiveTab('caddy')}
+          />
+          <TabButton
+            icon={<VideoIcon className="w-7 h-7" />}
+            label="Swing Coach"
+            isActive={activeTab === 'coach'}
+            onClick={() => setActiveTab('coach')}
+          />
+        </nav>
 
-  <ContentSpotlight
-    alt="Developer menu in Expo Go app."
-    src="/static/images/get-started/developer-menu.png"
-    className="max-w-[540px]"
-  />
+        {/* Settings Modal */}
+        {showSettings && <SettingsModal userClubs={userClubs} setUserClubs={setUserClubs} onClose={() => setShowSettings(false)} />}
+      </div>
+    </div>
+  );
+}
 
-</Collapsible>
+// --- Caddy View Component ---
 
-</Step>
+function CaddyView({ holeData, selectedTee, setSelectedTee, recommendedClub }) {
+  return (
+    <div className="p-4 space-y-4">
+      
+      {/* Hole Info */}
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h2 className="text-2xl font-bold">{mockCourse.name}</h2>
+        <p className="text-lg text-gray-700">Hole {mockCourse.hole} - Par {mockCourse.par} - "{mockCourse.holeName}"</p>
+      </div>
 
----
+      {/* Tee Selection */}
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h3 className="text-sm font-semibold text-gray-500 mb-2">SELECT TEE</h3>
+        <div className="flex justify-between space-x-2">
+          {Object.keys(mockCourse.tees).map((teeKey) => (
+            <button
+              key={teeKey}
+              onClick={() => setSelectedTee(teeKey)}
+              className={`flex-1 py-2 px-3 rounded-lg font-semibold transition-all
+                ${selectedTee === teeKey 
+                  ? 'bg-green-700 text-white shadow-lg' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+            >
+              {mockCourse.tees[teeKey].name}
+            </button>
+          ))}
+        </div>
+      </div>
 
-## File structure
+      {/* Map View */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <img src={mockCourse.mapUrl} alt="Hole Map" className="w-full h-auto object-cover" />
+      </div>
 
-Below, you can get familiar with the default project's file structure:
+      {/* Distances */}
+      <div className="flex justify-between text-center space-x-2">
+        <DistanceCard label="FRONT" distance={holeData.green.front} className="bg-blue-600" />
+        <DistanceCard label="MIDDLE" distance={holeData.green.middle} className="bg-red-600 !text-3xl" />
+        <DistanceCard label="BACK" distance={holeData.green.back} className="bg-gray-600" />
+      </div>
 
-<ProjectStructure />
+      {/* Caddy Advice */}
+      <div className="bg-white p-4 rounded-lg shadow space-y-3">
+        <h3 className="text-xl font-bold text-green-800">Caddy Advice</h3>
+        <div>
+          <h4 className="font-semibold text-gray-700">Best Play:</h4>
+          <p className="text-gray-600">{mockCourse.advice}</p>
+        </div>
+        <div>
+          <h4 className="font-semibold text-gray-700">Club Recommendation:</h4>
+          <p className="text-gray-600">
+            For the <span className="font-bold">{holeData.green.middle} yd</span> shot to the middle, we suggest your 
+            <span className="font-bold text-green-700"> {recommendedClub}</span>.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-## Features
+const DistanceCard = ({ label, distance, className }) => (
+  <div className={`flex-1 p-3 rounded-lg text-white shadow-md ${className}`}>
+    <div className="text-xs font-bold opacity-90">{label}</div>
+    <div className="text-2xl font-bold">{distance}</div>
+    <div className="text-xs font-bold opacity-90">yds</div>
+  </div>
+);
 
-The default project template has the following features:
+// --- Swing Coach View Component ---
 
-<TemplateFeatures />
+function SwingCoachView() {
+  return (
+    <div className="p-4 space-y-4">
+      <div className="bg-white p-4 rounded-lg shadow text-center">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">AI Swing Coach</h2>
+        <p className="text-gray-600 mb-6">Record your swing, and our AI will give you actionable tips and drills to improve your game.</p>
+        <button className="w-full py-3 px-6 bg-green-700 text-white font-bold rounded-lg shadow-lg hover:bg-green-800 transition-all flex items-center justify-center space-x-2">
+          <VideoIcon className="w-6 h-6" />
+          <span>Record New Swing</span>
+        </button>
+      </div>
+
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h3 className="text-xl font-bold text-green-800 mb-3">Your Last Analysis</h3>
+        <div className="space-y-3">
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <h4 className="font-semibold text-gray-700">Primary Issue:</h4>
+            <p className="text-gray-600">"Over the Top" move on the downswing.</p>
+          </div>
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <h4 className="font-semibold text-gray-700">AI Tip:</h4>
+            <p className="text-gray-600">Try to feel like you are dropping the club "in the slot" behind you to start your downswing. This will help shallow the club.</p>
+          </div>
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <h4 className="font-semibold text-gray-700">Recommended Drill:</h4>
+            <p className="text-gray-600">"Headcover Drill": Place a headcover just outside your ball path. Try to swing without hitting it on the way down.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Settings Modal Component ---
+
+function SettingsModal({ userClubs, setUserClubs, onClose }) {
+  
+  const handleClubChange = (club, distance) => {
+    // Only allow numbers
+    const newDistance = parseInt(distance.replace(/\D/g, ''), 10);
+    setUserClubs(prev => ({
+      ...prev,
+      [club]: isNaN(newDistance) ? 0 : newDistance,
+    }));
+  };
+
+  return (
+    <div className="absolute inset-0 bg-black/50 flex justify-center items-center p-4 z-50">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+        {/* Modal Header */}
+        <div className="flex justify-between items-center p-4 border-b">
+          <h2 className="text-xl font-bold text-gray-800">My Club Distances</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
+            <XIcon className="w-6 h-6" />
+          </button>
+        </div>
+        
+        {/* Modal Body */}
+        <div className="p-4 overflow-y-auto space-y-2">
+          <p className="text-sm text-gray-600 mb-4">Enter your average carry distance (in yards) for each club. This will power your Caddy recommendations.</p>
+          {Object.keys(userClubs).map(club => (
+            <div key={club} className="flex items-center space-x-3">
+              <label className="w-1/3 font-semibold text-gray-700">{club}</label>
+              <input
+                type="tel" // Use 'tel' for number pad on mobile
+                value={userClubs[club]}
+                onChange={(e) => handleClubChange(club, e.target.value)}
+                className="flex-1 p-2 border border-gray-300 rounded-md text-right"
+              />
+              <span className="text-gray-500">yds</span>
+            </div>
+          ))}
+        </div>
+        
+        {/* Modal Footer */}
+        <div className="p-4 border-t bg-gray-50">
+          <button 
+            onClick={onClose} 
+            className="w-full py-2 px-4 bg-green-700 text-white font-bold rounded-lg shadow hover:bg-green-800 transition-all"
+          >
+            Save & Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Tab Button Component ---
+
+const TabButton = ({ icon, label, isActive, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`flex flex-col items-center justify-center h-full px-4 transition-all
+      ${isActive ? 'text-green-700' : 'text-gray-500 hover:text-gray-700'}
+    `}
+  >
+    {icon}
+    <span className="text-xs font-semibold">{label}</span>
+  </button>
+);
